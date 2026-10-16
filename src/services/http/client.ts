@@ -66,7 +66,11 @@ async function request<T>(method: string, path: string, options?: RequestInit): 
       parsedMessage ?? `HTTP ${response.status}`,
       errorBody.details
     );
-    logger.error('API request failed', { url, status: response.status, code: error.code, message: error.message });
+    const expectedLoginFailure =
+      cleanPath === '/auths/login' && [400, 401, 422].includes(response.status);
+    if (!expectedLoginFailure) {
+      logger.error('API request failed', { url, status: response.status, code: error.code, message: error.message });
+    }
 
     if (response.status === 401 && typeof window !== 'undefined') {
       clearSession();

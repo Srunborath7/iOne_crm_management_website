@@ -4,6 +4,11 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import logo from "@/public/logo.png"; // default import, not { logo }
 import Link from "next/link";
+import { authApi } from "@/src/services/auth/auths.api";
+import { useRouter } from "next/navigation";
+import { useAppStore } from "@/src/store/useAppStore";
+import { canAccess, getHomeRoute } from "@/src/lib/roles";
+import { useToast } from "@/src/components/ui/ToastProvider";
 
 const pipeline = [
   { stage: "Leads", count: 128, width: "w-full" },
@@ -18,19 +23,33 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const router = useRouter();
+  const toast = useToast();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError("");
     setLoading(true);
     try {
-      // TODO: replace with your auth call (NextAuth signIn, fetch("/api/login"), etc.)
-      await new Promise((r) => setTimeout(r, 800));
       if (!email || !password) throw new Error("Enter your email and password.");
-      // router.push("/dashboard");
+
+      const user = await authApi.login({ email: email.trim(), password });
+      useAppStore.getState().setCurrentUser(user);
+      toast.clear();
+      toast.success("Login successful.");
+      const requested = new URLSearchParams(window.location.search).get("next");
+      const safeRequested =
+        requested?.startsWith("/") &&
+        !requested.startsWith("//") &&
+        !requested.includes("\\") &&
+        !requested.startsWith("/auth/") &&
+        canAccess(user, requested)
+          ? requested
+          : null;
+
+      router.replace(safeRequested ?? getHomeRoute(user));
     } catch (err) {
-      setError(
+      toast.clear();
+      toast.error(
         err instanceof Error ? err.message : "Email or password is incorrect."
       );
     } finally {
@@ -105,15 +124,6 @@ export default function LoginPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
-            {error && (
-              <div
-                role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-              >
-                {error}
-              </div>
-            )}
-
             <div>
               <label
                 htmlFor="email"

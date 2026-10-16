@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import type { AuthUser } from '@/services/auth/type';
+import type { AuthUser } from '@/src/services/auth/type';
 
 export interface NavTab {
   href: string;
@@ -42,15 +42,24 @@ state = {
   setCurrentUser: (currentUser) => updateState({ currentUser }),
   setSession: (accessToken, currentUser) => updateState({ accessToken, currentUser }),
   clearSession: () => updateState({ accessToken: null, currentUser: null }),
-  openTab: (tab) => updateState((current) => ({
-    tabs: current.tabs.some((item) => item.href === tab.href) ? current.tabs : [...current.tabs, tab],
-  })),
-  closeTab: (href) => updateState((current) => ({ tabs: current.tabs.filter((tab) => tab.href !== href) })),
+  openTab: (tab) =>
+    updateState((current) => ({
+      tabs: current.tabs.some((item) => item.href === tab.href) ? current.tabs : [...current.tabs, tab],
+    })),
+  closeTab: (href) =>
+    updateState((current) => ({ tabs: current.tabs.filter((tab) => tab.href !== href) })),
 };
+
+// Must come AFTER `state` is assigned. updateState always creates a new object,
+// so this snapshot is never mutated. It is what the server and the first
+// hydration render see, so they always match.
+const initialState = state;
 
 function subscribe(listener: StateListener) {
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 type AppStoreHook = {
@@ -60,6 +69,10 @@ type AppStoreHook = {
 
 export const useAppStore: AppStoreHook = Object.assign(
   <Selection,>(selector: (current: AppState) => Selection) =>
-    useSyncExternalStore(subscribe, () => selector(state), () => selector(state)),
+    useSyncExternalStore(
+      subscribe,
+      () => selector(state), // client: live state
+      () => selector(initialState) // server + hydration: always the empty state
+    ),
   { getState: () => state },
 );
