@@ -1,36 +1,70 @@
-// components/dashboard/TabBar.tsx
 "use client";
 
-import { useEffect, type MouseEvent } from "react";
+import { useEffect, type DragEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useAppStore } from "@/src/store/useAppStore";
-import { findNavItem, isActive } from "./nav";
+import { findNavItem, isActive, navItems } from "./nav";
+
+const TABS_STORAGE_KEY = "ione-crm-open-tabs";
 
 export default function TabBar() {
   const router = useRouter();
   const pathname = usePathname();
   const tabs = useAppStore((s) => s.tabs);
+  const hydrated = useAppStore((s) => s.tabsHydrated);
   const closeTab = useAppStore((s) => s.closeTab);
+  const moveTab = useAppStore((s) => s.moveTab);
 
-  // Open a tab for every page the user visits.
+  // Restore open tabs after refresh, accepting only known application routes.
   useEffect(() => {
-    const item = findNavItem(pathname);
-    if (item) {
-      useAppStore.getState().openTab({ href: item.href, label: item.label });
+    try {
+      const saved = window.localStorage.getItem(TABS_STORAGE_KEY);
+      const parsed: unknown = saved ? JSON.parse(saved) : [];
+      const validTabs = Array.isArray(parsed)
+        ? parsed.filter(
+            (tab): tab is { href: string; label: string } =>
+              typeof tab?.href === "string" &&
+              typeof tab?.label === "string" &&
+              navItems.some((item) => item.href === tab.href && item.label === tab.label),
+          )
+        : [];
+      useAppStore.getState().restoreTabs(validTabs);
+    } catch {
+      // Ignore malformed or unavailable browser storage.
+      useAppStore.getState().restoreTabs([]);
     }
-  }, [pathname]);
+  }, []);
 
-  function handleClose(e: MouseEvent, href: string) {
-    e.preventDefault();
-    e.stopPropagation();
-    const remaining = tabs.filter((t) => t.href !== href);
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      window.localStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs));
+    } catch {
+      // Navigation still works if browser storage is unavailable.
+    }
+  }, [hydrated, tabs]);
+
+  // Add the active page after restoration, including on a direct page load.
+  useEffect(() => {
+    if (!hydrated) return;
+    const item = findNavItem(pathname);
+    if (item) useAppStore.getState().openTab({ href: item.href, label: item.label });
+  }, [hydrated, pathname]);
+
+  function handleClose(href: string) {
+    const remaining = tabs.filter((tab) => tab.href !== href);
     closeTab(href);
-    // Closing the page you are on moves you to the last open tab.
     if (isActive(pathname, href)) {
       router.push(remaining[remaining.length - 1]?.href ?? "/dashboard");
     }
+  }
+
+  function handleDrop(event: DragEvent<HTMLDivElement>, targetHref: string) {
+    event.preventDefault();
+    const sourceHref = event.dataTransfer.getData("text/plain");
+    if (sourceHref) moveTab(sourceHref, targetHref);
   }
 
   if (tabs.length === 0) return null;
@@ -44,27 +78,35 @@ export default function TabBar() {
       {tabs.map((tab) => {
         const active = isActive(pathname, tab.href);
         return (
-          <Link
+          <div
             key={tab.href}
-            href={tab.href}
             role="tab"
             aria-selected={active}
-            className={`group flex shrink-0 items-center gap-2 rounded-t-lg border border-b-0 px-3.5 py-2 text-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+            draggable
+            onDragStart={(event) => {
+              event.dataTransfer.setData("text/plain", tab.href);
+              event.dataTransfer.effectAllowed = "move";
+            }}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => handleDrop(event, tab.href)}
+            className={`group flex shrink-0 cursor-grab items-center gap-2 rounded-t-lg border border-b-0 px-3.5 py-2 text-sm transition active:cursor-grabbing ${
               active
                 ? "border-slate-200 bg-slate-50 font-medium text-slate-900"
                 : "border-transparent text-slate-600 hover:bg-slate-200/60"
             }`}
           >
-            {tab.label}
+            <Link href={tab.href} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+              {tab.label}
+            </Link>
             <button
               type="button"
-              onClick={(e) => handleClose(e, tab.href)}
+              onClick={() => handleClose(tab.href)}
               aria-label={`Close ${tab.label}`}
               className="rounded p-0.5 text-slate-400 hover:bg-slate-300/70 hover:text-slate-700"
             >
               <X className="h-3.5 w-3.5" />
             </button>
-          </Link>
+          </div>
         );
       })}
     </div>
