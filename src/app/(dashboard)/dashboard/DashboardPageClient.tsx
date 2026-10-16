@@ -54,7 +54,7 @@ export default function DashboardPage() {
           <div className="max-w-xl">
             <p className="text-sm font-medium text-blue-100">Your workspace</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">
-              {user ? `Welcome back, ${user.username}` : "Welcome to iOne CRM"}
+              {user ? `Welcome back, ${user.username.toUpperCase()}` : "Welcome to iOne CRM"}
             </h2>
             <p className="mt-2 text-sm leading-6 text-blue-100">
               {user?.role?.name
