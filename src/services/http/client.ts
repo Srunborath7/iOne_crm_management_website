@@ -2,7 +2,7 @@ import { ApiError } from '@/types/api.types';
 import { logger } from '@/src/lib/logger';
 import { getAccessToken, clearSession } from '@/src/lib/session';
 
-const RAW_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+const RAW_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 const BASE_URL = RAW_BASE.replace(/^['"]|['"]$/g, '').trim().replace(/\/+$/, '');
 
 async function request<T>(method: string, path: string, options?: RequestInit): Promise<T> {
