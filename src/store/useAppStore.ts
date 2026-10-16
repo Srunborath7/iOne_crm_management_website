@@ -13,6 +13,7 @@ interface AppState {
   accessToken: string | null;
   currentUser: AuthUser | null;
   tabs: NavTab[];
+  tabsHydrated: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   setAccessToken: (token: string | null) => void;
   setCurrentUser: (user: AuthUser | null) => void;
@@ -20,6 +21,8 @@ interface AppState {
   clearSession: () => void;
   openTab: (tab: NavTab) => void;
   closeTab: (href: string) => void;
+  moveTab: (sourceHref: string, targetHref: string) => void;
+  restoreTabs: (tabs: NavTab[]) => void;
 }
 
 type StateListener = () => void;
@@ -37,17 +40,38 @@ state = {
   accessToken: null,
   currentUser: null,
   tabs: [],
+  tabsHydrated: false,
   setSidebarCollapsed: (sidebarCollapsed) => updateState({ sidebarCollapsed }),
   setAccessToken: (accessToken) => updateState({ accessToken }),
   setCurrentUser: (currentUser) => updateState({ currentUser }),
   setSession: (accessToken, currentUser) => updateState({ accessToken, currentUser }),
-  clearSession: () => updateState({ accessToken: null, currentUser: null }),
+  clearSession: () => {
+    updateState({ accessToken: null, currentUser: null, tabs: [], tabsHydrated: false });
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.removeItem('ione-crm-open-tabs');
+      } catch {
+        // Session cleanup must still complete when browser storage is unavailable.
+      }
+    }
+  },
   openTab: (tab) =>
     updateState((current) => ({
       tabs: current.tabs.some((item) => item.href === tab.href) ? current.tabs : [...current.tabs, tab],
     })),
   closeTab: (href) =>
     updateState((current) => ({ tabs: current.tabs.filter((tab) => tab.href !== href) })),
+  moveTab: (sourceHref, targetHref) =>
+    updateState((current) => {
+      const fromIndex = current.tabs.findIndex((tab) => tab.href === sourceHref);
+      const toIndex = current.tabs.findIndex((tab) => tab.href === targetHref);
+      if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return {};
+      const tabs = [...current.tabs];
+      const [movedTab] = tabs.splice(fromIndex, 1);
+      tabs.splice(toIndex, 0, movedTab);
+      return { tabs };
+    }),
+  restoreTabs: (tabs) => updateState({ tabs, tabsHydrated: true }),
 };
 
 // Must come AFTER `state` is assigned. updateState always creates a new object,
