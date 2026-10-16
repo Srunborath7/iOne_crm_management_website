@@ -1,34 +1,57 @@
 // services/auth/auth.api.ts
 import { httpClient } from '@/src/services/http/client'; // adjust to where your httpClient lives
 import { saveSession, clearSession } from '@/src/lib/session';
-import type {
-  AuthUser,
-  LoginRequest,
-  RegisterRequest,
-  TokenResponse,
-} from './type';
+import type { AuthUser, LoginRequest, RegisterRequest } from '@/src/services/auth/type';
 
-// BASE_URL already ends in /api/v1, so these paths are relative to it.
+// Your API may return the object directly or wrapped as { data: ... }
+// (your old code read response.data.access_token). Handle both.
+function unwrap<T>(res: unknown): T {
+  if (res && typeof res === 'object' && 'data' in res) {
+    return (res as Record<string, unknown>).data as T;
+  }
+  return res as T;
+}
+
+type LoginPayload = { access_token: string; user?: AuthUser };
+
 export const authApi = {
   /** Log in, store the session, then return the current user. */
   async login(data: LoginRequest): Promise<AuthUser> {
-    const { access_token } = await httpClient.post<TokenResponse>('/auth/login', data);
-    // httpClient reads the token from the session cookie on every request,
-    // so save it before calling /auth/me.
-    saveSession(access_token);
-    const user = await httpClient.get<AuthUser>('/auth/me');
-    saveSession(access_token, user); // now also caches the user in localStorage
+    const raw = await httpClient.post<unknown>('/auths/login', data);
+    const payload = unwrap<LoginPayload>(raw);
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[login] raw response:', raw);
+    }
+
+    const token = payload?.access_token;
+    if (!token) {
+      throw new Error('Login response did not include an access_token.');
+    }
+
+    // httpClient reads the token from the session on every request.
+    saveSession(token);
+
+    let user = payload.user ?? null;
+    if (!user) {
+      try {
+        user = unwrap<AuthUser>(await httpClient.get<unknown>('/auths/me'));
+      } catch (err) {
+        clearSession(); // don't leave a half-logged-in session behind
+        throw err;
+      }
+    }
+
+    saveSession(token, user); // cookie + localStorage + store
     return user;
   },
 
-  /** Create an account. Does not log the user in. */
   register(data: RegisterRequest): Promise<AuthUser> {
-    return httpClient.post<AuthUser>('/auth/register', data);
+    return httpClient.post<unknown>('/auths/register', data).then((r) => unwrap<AuthUser>(r));
   },
 
-  /** Current user, based on the stored token. */
-  me(): Promise<AuthUser> {
-    return httpClient.get<AuthUser>('/auth/me');
+  async me(): Promise<AuthUser> {
+    return unwrap<AuthUser>(await httpClient.get<unknown>('/auths/me'));
   },
 
   logout(): void {

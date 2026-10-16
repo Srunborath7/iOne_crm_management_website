@@ -4,6 +4,9 @@ import { useState, type FormEvent } from "react";
 import Image from "next/image";
 import logo from "@/public/logo.png";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { authApi } from "@/src/services/auth/auths.api";
+import { useToast } from "@/src/components/ui/ToastProvider";
 
 const pipeline = [
   { stage: "Leads", count: 128, width: "w-full" },
@@ -18,47 +21,44 @@ const inputClass =
 const labelClass = "mb-1.5 block text-sm font-medium text-slate-700";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const toast = useToast();
 
   const passwordMismatch =
     confirmPassword.length > 0 && password !== confirmPassword;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setError("");
-
-    if (!username.trim() || !email.trim() || !password) {
-      setError("Fill in all fields.");
+    if (!username.trim() || !email.trim() || !password || !confirmPassword) {
+      toast.error("Fill in all fields.");
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+      toast.error("Password must be at least 8 characters.");
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      toast.error("Passwords do not match.");
       return;
     }
 
     setLoading(true);
     try {
-      // TODO: replace with your register call, e.g.
-      // const res = await fetch("/api/register", {
-      //   method: "POST",
-      //   headers: { "Content-Type": "application/json" },
-      //   body: JSON.stringify({ username, email, password }),
-      // });
-      // if (!res.ok) throw new Error((await res.json()).message);
-      await new Promise((r) => setTimeout(r, 800));
-      // router.push("/auth/login");
+      await authApi.register({
+        username: username.trim(),
+        email: email.trim(),
+        password,
+      });
+      toast.success("Account created. Please sign in.");
+      router.replace("/auth/login");
     } catch (err) {
-      setError(
+      toast.error(
         err instanceof Error
           ? err.message
           : "Could not create your account. Try again."
@@ -141,15 +141,6 @@ export default function RegisterPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
-            {error && (
-              <div
-                role="alert"
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-              >
-                {error}
-              </div>
-            )}
-
             <div>
               <label htmlFor="username" className={labelClass}>
                 Username
