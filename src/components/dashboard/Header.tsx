@@ -6,6 +6,7 @@ import { LogOut, Menu, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { useAppStore } from "@/src/store/useAppStore";
 import { authApi } from "@/src/services/auth/auths.api"; // adjust to where auth.api.ts lives
 import { findNavItem } from "./nav";
+import { useToast } from "@/src/components/ui/ToastProvider";
 
 export default function Header({ onOpenMobile }: { onOpenMobile: () => void }) {
   const router = useRouter();
@@ -13,11 +14,13 @@ export default function Header({ onOpenMobile }: { onOpenMobile: () => void }) {
   const user = useAppStore((s) => s.currentUser);
   const collapsed = useAppStore((s) => s.sidebarCollapsed);
   const setCollapsed = useAppStore((s) => s.setSidebarCollapsed);
+  const toast = useToast();
 
   const title = findNavItem(pathname)?.label ?? "iOne CRM";
   const initial = user?.username?.charAt(0).toUpperCase() ?? "";
 
-  function handleLogout() {
+  async function handleLogout() {
+    if (!(await toast.confirm("Are you sure you want to log out?"))) return;
     authApi.logout(); // clears cookie, localStorage and the store
     router.replace("/auth/login");
   }
@@ -67,8 +70,8 @@ export default function Header({ onOpenMobile }: { onOpenMobile: () => void }) {
               {initial}
             </div>
             <div className="hidden leading-tight sm:block">
-              <p className="text-sm font-medium text-slate-900">{user.username}</p>
-              <p className="text-xs text-slate-500">{user.role?.name}</p>
+              <p className="text-sm font-medium text-slate-900 lowercase first-letter:uppercase">{user.username}</p>
+              <p className="text-xs text-slate-500">{user.role?.name.toUpperCase()}</p>
             </div>
           </div>
         ) : (

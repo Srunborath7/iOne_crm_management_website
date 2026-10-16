@@ -20,6 +20,15 @@ export type RegisterRequest = {
   password: string;
   user_role?: string; // UUID
 };
+
+export type PasswordResetRequest = {
+  email: string;
+};
+
+export type PasswordResetConfirmRequest = {
+  token: string;
+  new_password: string;
+};
  
 // Backend: AuthResponse (no password, no timestamps)
 export type AuthUser = {

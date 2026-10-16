@@ -152,7 +152,7 @@ export default function LoginPage() {
                   Password
                 </label>
                 <a
-                  href="/forgot-password"
+                  href="/auth/forgot-password"
                   className="text-sm font-medium text-blue-700 hover:text-blue-800 focus:outline-none focus-visible:underline"
                 >
                   Forgot password?
@@ -165,6 +165,7 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   required
                   value={password}
+                  placeholder="password123"
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 bg-white py-2.5 pl-3.5 pr-16 text-sm text-slate-900 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/30"
                 />

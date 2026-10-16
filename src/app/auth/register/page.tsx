@@ -186,6 +186,7 @@ export default function RegisterPage() {
                   minLength={8}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  placeholder="password123"
                   aria-describedby="password-hint"
                   className={`${inputClass} pr-16`}
                 />
@@ -214,6 +215,7 @@ export default function RegisterPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="password123"
                 aria-invalid={passwordMismatch}
                 className={`${inputClass} ${
                   passwordMismatch

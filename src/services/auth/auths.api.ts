@@ -1,7 +1,7 @@
 // services/auth/auth.api.ts
 import { httpClient } from '@/src/services/http/client'; // adjust to where your httpClient lives
 import { saveSession, clearSession } from '@/src/lib/session';
-import type { AuthUser, LoginRequest, RegisterRequest } from '@/src/services/auth/type';
+import type { AuthUser, LoginRequest, PasswordResetConfirmRequest, PasswordResetRequest, RegisterRequest } from '@/src/services/auth/type';
 
 // Your API may return the object directly or wrapped as { data: ... }
 // (your old code read response.data.access_token). Handle both.
@@ -48,6 +48,14 @@ export const authApi = {
 
   register(data: RegisterRequest): Promise<AuthUser> {
     return httpClient.post<unknown>('/auths/register', data).then((r) => unwrap<AuthUser>(r));
+  },
+
+  requestPasswordReset(data: PasswordResetRequest): Promise<unknown> {
+    return httpClient.post<unknown>('/auths/forgot-password', data);
+  },
+
+  resetPassword(data: PasswordResetConfirmRequest): Promise<unknown> {
+    return httpClient.post<unknown>('/auths/reset-password', data);
   },
 
   async me(): Promise<AuthUser> {
