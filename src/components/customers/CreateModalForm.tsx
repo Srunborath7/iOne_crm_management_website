@@ -3,7 +3,12 @@
 import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import { customerApi } from "@/src/services/customers";
-import type { CreateCustomers, Gender, ResponseCustomers } from "@/src/services/customers";
+import type {
+  CreateCustomers,
+  Gender,
+  ResponseCustomers,
+} from "@/src/services/customers";
+import { useToast } from "../ui/ToastProvider";
 
 type CreateModalFormProps = {
   onClose: () => void;
@@ -18,7 +23,7 @@ export default function CreateModalForm({
 }: CreateModalFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-
+  const toast = useToast();
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -43,6 +48,11 @@ export default function CreateModalForm({
       else await customerApi.create(payload);
       onCreated();
       onClose();
+      toast.success(
+        customer
+          ? "Customer updated successfully."
+          : "Customer created successfully.",
+      );
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -76,7 +86,9 @@ export default function CreateModalForm({
               {customer ? "Edit customer" : "New customer"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {customer ? "Update this customer’s details." : "Add a customer to your workspace."}
+              {customer
+                ? "Update this customer’s details."
+                : "Add a customer to your workspace."}
             </p>
           </div>
           <button
@@ -205,7 +217,13 @@ export default function CreateModalForm({
               disabled={isSubmitting}
               className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? (customer ? "Saving…" : "Creating…") : (customer ? "Save changes" : "Create customer")}
+              {isSubmitting
+                ? customer
+                  ? "Saving…"
+                  : "Creating…"
+                : customer
+                  ? "Save changes"
+                  : "Create customer"}
             </button>
           </div>
         </form>
