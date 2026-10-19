@@ -49,9 +49,9 @@ export default function Header({ onOpenMobile }: { onOpenMobile: () => void }) {
         className={`${iconBtn} hidden md:inline-flex`}
       >
         {collapsed ? (
-          <PanelLeftOpen className="h-5 w-5" />
+          <PanelLeftOpen className="h-5 w-5 hidden md:inline-flex" />
         ) : (
-          <PanelLeftClose className="h-5 w-5" />
+          <PanelLeftClose className="h-5 w-5 hidden md:inline-flex" />
         )}
       </button>
 
