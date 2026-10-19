@@ -27,8 +27,9 @@ export const navItems: NavItem[] = [
     label: "Products",
     icon: Package,
     children: [
-      { href: "/products/brands", label: "Brands", icon: Tag },
-      { href: "/products/categories", label: "Categories", icon: Layers },
+      { href: "/products", label: "Products", icon: Package },
+      { href: "brands", label: "Brands", icon: Tag },
+      { href: "categories", label: "Categories", icon: Layers },
     ],
   },
   { href: "/leads", label: "Leads", icon: Target },
