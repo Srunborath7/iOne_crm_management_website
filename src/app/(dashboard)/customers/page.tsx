@@ -5,6 +5,7 @@ import type { ResponseCustomers } from "@/src/services/customers";
 import Loading from "@/src/components/loading";
 import RefreshButton from "@/src/components/RefreshButton";
 import CustomerActions from "@/src/components/customers/CustomerActions";
+import NewCustomerButton from "@/src/components/customers/NewCustomerButton";
 const ACCESS_TOKEN_COOKIE = "inventory_access_token";
 
 // This page waits for the dashboard session and customer data.
@@ -57,7 +58,8 @@ async function CustomerContent() {
             </p>
           )}
         </div>
-        <div>
+        <div className="flex gap-4">
+          <NewCustomerButton />
           <RefreshButton />
         </div>
       </div>
@@ -152,7 +154,7 @@ async function CustomerContent() {
                       </span>
                     </td>
                     <td>
-                      <CustomerActions customerName={customer.name} />
+                      <CustomerActions customer={customer} />
                     </td>
                   </tr>
                 ))}
