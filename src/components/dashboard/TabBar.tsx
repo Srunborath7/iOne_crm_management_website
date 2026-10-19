@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { X } from "lucide-react";
 import { useAppStore } from "@/src/store/useAppStore";
-import { findNavItem, isActive, navItems } from "./nav";
+import { findNavItem, isActive } from "./nav";
 
 const TABS_STORAGE_KEY = "ione-crm-open-tabs";
 
@@ -27,7 +27,7 @@ export default function TabBar() {
             (tab): tab is { href: string; label: string } =>
               typeof tab?.href === "string" &&
               typeof tab?.label === "string" &&
-              navItems.some((item) => item.href === tab.href && item.label === tab.label),
+              findNavItem(tab.href)?.label === tab.label,
           )
         : [];
       useAppStore.getState().restoreTabs(validTabs);
@@ -54,10 +54,12 @@ export default function TabBar() {
   }, [hydrated, pathname]);
 
   function handleClose(href: string) {
+    const closedIndex = tabs.findIndex((tab) => tab.href === href);
     const remaining = tabs.filter((tab) => tab.href !== href);
     closeTab(href);
     if (isActive(pathname, href)) {
-      router.push(remaining[remaining.length - 1]?.href ?? "/dashboard");
+      const nextTab = remaining[Math.min(closedIndex, remaining.length - 1)];
+      router.push(nextTab?.href ?? "/dashboard");
     }
   }
 
@@ -80,8 +82,6 @@ export default function TabBar() {
         return (
           <div
             key={tab.href}
-            role="tab"
-            aria-selected={active}
             draggable
             onDragStart={(event) => {
               event.dataTransfer.setData("text/plain", tab.href);
@@ -95,7 +95,13 @@ export default function TabBar() {
                 : "border-transparent text-slate-600 hover:bg-slate-200/60"
             }`}
           >
-            <Link href={tab.href} className="focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600">
+            <Link
+              href={tab.href}
+              role="tab"
+              aria-selected={active}
+              aria-current={active ? "page" : undefined}
+              className="rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            >
               {tab.label}
             </Link>
             <button
